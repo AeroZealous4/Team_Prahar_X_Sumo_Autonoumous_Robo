@@ -21,6 +21,7 @@
 const uint8_t LED_PIN = 13;
 
 // Motor pins
+/*
 const uint8_t ENA_L1 = 7;//4;
 const uint8_t IN1_L1 = 6;//49;
 const uint8_t IN2_L1 = 5;//48;
@@ -36,6 +37,23 @@ const uint8_t IN2_R1 = 3;//44;
 const uint8_t ENA_R2 = 8;//3;
 const uint8_t IN1_R2 = 9;//47;
 const uint8_t IN2_R2 = 10;//46;
+*/
+const uint8_t ENA_L1 = 9;//4;
+const uint8_t IN1_L1 = 2;//49;
+const uint8_t IN2_L1 = 3;//48;
+
+const uint8_t ENA_L2 = 10;//5;
+const uint8_t IN1_L2 = 4;//51;
+const uint8_t IN2_L2 = 5;//50;
+
+const uint8_t ENA_R1 = 11;//2;
+const uint8_t IN1_R1 = 7;//45;
+const uint8_t IN2_R1 = 8;//44;
+
+const uint8_t ENA_R2 = 6;//3;
+const uint8_t IN1_R2 = 12;//47;
+const uint8_t IN2_R2 = 13;//46;
+
 
 //Ultra sonic pins
 #define ultra_l 42

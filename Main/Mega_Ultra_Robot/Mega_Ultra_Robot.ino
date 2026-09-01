@@ -13,15 +13,15 @@ Servo myservo;  // create servo object to control a servo
 
 void setup () {
   // Serial.begin(9600);
-  HCSR04.begin(triggerPin, echoPins, echoCount);
-  myservo.attach(SERVO_PIN);  // attaches the servo on pin 9 to the servo object
+ // HCSR04.begin(triggerPin, echoPins, echoCount);
+ // myservo.attach(SERVO_PIN);  // attaches the servo on pin 9 to the servo object
 
   //Inititialize RGB from Nano
-  rgb_from_nano_begin();
+ // rgb_from_nano_begin();
   // Initialize the motor
   robo_begin();
 }
-
+/*
 
 void loop () {
   unsigned long fn_time;
@@ -131,9 +131,9 @@ void loop () {
   }
 }
 
-
+*/
 
 //         TEST CASE
-// void loop(){
-//  robo_speed_update(CONST_FWD_SPEED, 0); 
-// }
+ void loop(){
+  robo_speed_update(CONST_FWD_SPEED, 0); 
+ }
