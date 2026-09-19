@@ -37,8 +37,8 @@ void rotate_clock(uint8_t speed) {
     #if DEBUG_ENABLE
     Serial.print(" clk ");
     #endif
-    digitalWrite(DIR_1, LOW);
-    digitalWrite(DIR_2, HIGH);
+    digitalWrite(DIR_2, LOW);
+    digitalWrite(DIR_1, HIGH);
     analogWrite(PWM_1, speed);
     analogWrite(PWM_2, speed);
 }
@@ -47,8 +47,8 @@ void rotate_anticlock(uint8_t speed) {
     #if DEBUG_ENABLE
     Serial.print(" anticlk ");
     #endif
-    digitalWrite(DIR_1, HIGH);
-    digitalWrite(DIR_2, LOW);
+    digitalWrite(DIR_2, HIGH);
+    digitalWrite(DIR_1, LOW);
     analogWrite(PWM_1, speed);
     analogWrite(PWM_2, speed);
 }
@@ -59,4 +59,3 @@ void stop_bot() {
 }
 
 #endif
-

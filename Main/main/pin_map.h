@@ -12,14 +12,13 @@
 
 // --- Digital Tracking Proximity Matrix ---
 #define PROXY_MID   48   
-#define PROXY_LEFT  42   
-#define PROXY_RIGHT 32   
+#define PROXY_LEFT  46   
+#define PROXY_RIGHT 42   
 
 // --- RGB I2C Multiplexer Sensor Mapping ---
 #define COUNT         2      
 #define MUX_ADDR      0x70   
-#define INDEX_FRONT   0      // Front Ground Edge Sensor
-#define INDEX_BACK    1      // Rear Ground Edge Sensor
+#define INDEX_LEFT    1      // Left Ground Edge Sensor
+#define INDEX_RIGHT   0      // Right Ground Edge Sensor
 
 #endif
-
