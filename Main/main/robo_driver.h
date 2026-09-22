@@ -53,6 +53,24 @@ void rotate_anticlock(uint8_t speed) {
     analogWrite(PWM_2, speed);
 }
 
+void rotate_clock_slow(uint8_t speed) {
+    #if DEBUG_ENABLE
+    Serial.println(" clk slow");
+    #endif    
+    digitalWrite(DIR_1, HIGH);
+    analogWrite(PWM_1, speed);
+    digitalWrite(DIR_2, LOW);    
+    analogWrite(PWM_2, 0);
+}
+void rotate_anticlock_slow(uint8_t speed) {
+    #if DEBUG_ENABLE
+    Serial.println(" anticlk slow");
+    #endif    
+    digitalWrite(DIR_1, LOW);
+    analogWrite(PWM_1, 0);
+    digitalWrite(DIR_2, HIGH);    
+    analogWrite(PWM_2, speed);
+}
 void stop_bot() {
     analogWrite(PWM_1, 0);
     analogWrite(PWM_2, 0);

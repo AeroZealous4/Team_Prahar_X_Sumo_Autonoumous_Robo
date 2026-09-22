@@ -1,9 +1,10 @@
 #include <Wire.h>
 #include "Adafruit_TCS34725.h"
+#include "HCSR04.h"
 #include "pin_map.h"
 #include "robo_driver.h"
 
-int red_thr = 150;
+int red_thr = 170;
 int green_thr = 100;
 int blue_thr = 100;
 
@@ -22,7 +23,13 @@ const uint8_t SPEED_EVADE  = 40; // Rapid getaway escape speed
 
 //const float bot_speed_per_pwm = (150/7.6)/20; //cm per secs
 const int bot_speed_per_pwm = 1; //cm per sec per pwm
-const unsigned long ROT_45_DEG_MS = 350; // ms to rotate 45 degrees at PATROL speed — tune on hardware
+const int move_safe_distance = 10; //cm per sec per pwm
+const int num_of_max_scans = 3;
+//
+const unsigned long ROT_45_DEG_MS = 400; // ms to rotate 45 degrees at PATROL speed — tune on hardware 308 ms per 45 degree
+
+//Ultrasound
+#define DEF_DET_RADIUS 50
 
 Adafruit_TCS34725 tcs[] = {
     Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_2_4MS, TCS34725_GAIN_16X),
@@ -47,13 +54,18 @@ void initColorSensors() {
 }
 
 void readColors(byte sensorNum) {
+    if(sensorNum==2)
+      chooseBus(5);
+    else
     chooseBus(sensorNum);
+    
     float red, green, blue;
     tcs[sensorNum].setInterrupt(false);  
     tcs[sensorNum].getRGB(&red, &green, &blue);
     tcs[sensorNum].setInterrupt(true);  
 
     #if DEBUG_ENABLE
+    Serial.println(" ");
     Serial.print("RGB Raw: ");
     Serial.print(sensorNum);
     Serial.print(" ");
@@ -79,7 +91,24 @@ bool alignToEdge(uint8_t checkIdx, unsigned long ms) {
     }
     return false;
 }
-
+// Back up a set distance; optionally watch edge sensors and halt early if red reappears
+void forwardCm(uint8_t speed, int cm, bool sensorCheck) {
+    unsigned long ms = (unsigned long)cm * 1000UL / ((unsigned long)speed * bot_speed_per_pwm);
+    unsigned long t0 = millis();
+    forward(speed);
+    while (millis() - t0 < ms) {
+        if (sensorCheck) {
+            for (int i = 0; i < COUNT; i++) readColors(i);
+            if (Red[INDEX_LEFT] || Red[INDEX_RIGHT])
+            {     
+              backwardCm(speed, move_safe_distance, false);       
+              break;
+            }
+        }
+        delay(5);
+    }
+    stop_bot();
+}
 // Back up a set distance; optionally watch edge sensors and halt early if red reappears
 void backwardCm(uint8_t speed, int cm, bool sensorCheck) {
     unsigned long ms = (unsigned long)cm * 1000UL / ((unsigned long)speed * bot_speed_per_pwm);
@@ -88,7 +117,11 @@ void backwardCm(uint8_t speed, int cm, bool sensorCheck) {
     while (millis() - t0 < ms) {
         if (sensorCheck) {
             for (int i = 0; i < COUNT; i++) readColors(i);
-            if (Red[INDEX_LEFT] || Red[INDEX_RIGHT]) break;
+            if (Red[INDEX_LEFT] || Red[INDEX_RIGHT])
+            {
+              forwardCm(speed, move_safe_distance, false);              
+              break;
+            }
         }
         delay(5);
     }
@@ -97,8 +130,8 @@ void backwardCm(uint8_t speed, int cm, bool sensorCheck) {
 
 // 4 cm blind, then 15 cm with edge sensing live — retreat clear of the boundary
 void retreatFromEdge() {
-    backwardCm(SPEED_EVADE, 4, false);
-    backwardCm(SPEED_EVADE, 30, true);
+    backwardCm(SPEED_EVADE, move_safe_distance, false);
+    backwardCm(SPEED_EVADE, 50, true);
 }
 
 void setup() {
@@ -110,12 +143,17 @@ void setup() {
     Wire.setClock(10000);
     Wire.setWireTimeout(3000, true);
 
+    HCSR04.begin(triggerPin, echoPins, echoCount);
+      
     pinMode(PROXY_MID, INPUT);
     pinMode(PROXY_LEFT, INPUT);
     pinMode(PROXY_RIGHT, INPUT);
 
     initMotorDriver();
     initColorSensors();
+
+    forwardCm(SPEED_EVADE
+    , 50, true); 
 }
 void loop() {
 
@@ -132,6 +170,7 @@ void loop() {
         Serial.println("RIGHT RED — aligning perpendicular (CW)...");
         #endif
         rotate_clock(SPEED_PATROL);
+        //otate_clock_slow(SPEED_PATROL);
         alignToEdge(INDEX_LEFT, ROT_45_DEG_MS);
         stop_bot();
         retreatFromEdge();
@@ -144,6 +183,7 @@ void loop() {
         Serial.println("LEFT RED — aligning perpendicular (CCW)...");
         #endif
         rotate_anticlock(SPEED_PATROL);
+        //rotate_anticlock_slow(SPEED_PATROL);
         alignToEdge(INDEX_RIGHT, ROT_45_DEG_MS);
         stop_bot();
         retreatFromEdge();
@@ -162,16 +202,22 @@ void loop() {
     // --- STEP 3: COMBAT MATRIX & FRONT SENSOR ADAPTIVE SPEED ---
     int val_mid   = digitalRead(PROXY_MID);
     int val_left  = digitalRead(PROXY_LEFT);
-    int val_right = digitalRead(PROXY_RIGHT);
+    int val_right = !digitalRead(PROXY_RIGHT);
 
+    double* distances = HCSR04.measureDistanceCm();
     #if DEBUG_ENABLE
+    Serial.println("");
+    Serial.print("Ultra dist: "); Serial.print(distances[0]);
+    Serial.println("");
     Serial.print("Sensors -> L: "); Serial.print(val_left);
     Serial.print(" | M: "); Serial.print(val_mid);
     Serial.print(" | R: "); Serial.print(val_right);
     Serial.print(" | LeftRed: "); Serial.println(Red[INDEX_LEFT]);
     #endif
 
-    if (val_mid == LOW) {
+    //if (val_mid == LOW)
+    if (val_mid == LOW || distances[0] < DEF_DET_RADIUS) 
+    {
       if(mid_state_if_previously_detected == 0)
          {
           //delay(50);
@@ -193,18 +239,18 @@ void loop() {
             forward(SPEED_ATTACK);
         }
     } 
-    else if (val_right == LOW) {
-        // Target slipping right -> Turn towards them
-        rotate_clock(SPEED_PATROL);
-        current_search_direction = 1; 
-        mid_state_if_previously_detected = 0;
-    } 
     else if (val_left == LOW) {
         // Target slipping left -> Turn towards them
         rotate_anticlock(SPEED_PATROL);
         current_search_direction = 0; 
         mid_state_if_previously_detected = 0;
-    } 
+    }
+     else if (val_right == LOW) {
+        // Target slipping right -> Turn towards them
+        rotate_clock(SPEED_PATROL);
+        current_search_direction = 1; 
+        mid_state_if_previously_detected = 0;
+    }
     else {
         // Empty Ring Strategy -> Active scanning sweeps using tracking memory direction
         if (current_search_direction == 1) {
@@ -214,5 +260,4 @@ void loop() {
         }
         mid_state_if_previously_detected = 0;
     }
-
 }
